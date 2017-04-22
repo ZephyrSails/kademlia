@@ -129,6 +129,7 @@ func TestFindNode(t *testing.T) {
 	if contacts == nil || len(contacts) == 0 {
 		t.Error("No contacts were found")
 	}
+	
 	// TODO: Check that the correct contacts were stored
 	//       (and no other contacts)
 

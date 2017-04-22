@@ -22,6 +22,8 @@ const (
 type Kademlia struct {
 	NodeID      ID
 	SelfContact Contact
+	hash 				map[ID][]byte
+	rt					RoutingTable
 }
 
 func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
@@ -29,6 +31,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	k.NodeID = nodeID
 
 	// TODO: Initialize other state here as you add functionality.
+
 
 	// Set up RPC server
 	// NOTE: KademliaRPC is just a wrapper around Kademlia. This type includes
@@ -84,6 +87,9 @@ func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
 	if nodeId == k.SelfContact.NodeID {
 		return &k.SelfContact, nil
 	}
+
+
+
 	return nil, &ContactNotFoundError{nodeId, "Not found"}
 }
 

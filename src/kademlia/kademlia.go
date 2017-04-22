@@ -64,7 +64,9 @@ func main() {
 	ping := new(libkademlia.PingMessage)
 	ping.MsgID = libkademlia.NewRandomID()
 	var pong libkademlia.PongMessage
+
 	err = client.Call("KademliaRPC.Ping", ping, &pong)
+	
 	if err != nil {
 		log.Fatal("Call: ", err)
 	}
