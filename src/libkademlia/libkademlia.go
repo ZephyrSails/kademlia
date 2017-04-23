@@ -15,20 +15,82 @@ import (
 const (
 	alpha = 3
 	b     = 8 * IDBytes
-	k     = 20
+	kMax  = 20
 )
+
+// STAMP_PING 				= 0
+// STAMP_STORE 			= 1
+// STAMP_FIND_NODE 	= 2
+// STAMP_FIND_VALUE	= 3
+
+
+
+// type Command struct {
+// 	stamp 								int
+// 	privateChanPing				chan PongMessage
+// 	argsPing							PingMessage
+//
+// 	privateChanStore
+// 	privateChanFindNode
+// 	privateChanFindValue
+// }
+type pingCommand struct {
+	Sender Contact
+}
+
+type storeCommand struct {
+	Sender Contact
+	Key    ID
+	Value  []byte
+}
+
+type findNodeCommand struct {
+	Sender 	Contact
+	NodeID 	ID
+	resChan chan []Contact
+}
+
+type findValueCommand struct {
+	Sender 		Contact
+	Key    		ID
+	valChan		chan []byte
+	nodeChan 	chan []Contact
+}
+
+func (k *Kademlia) Handler() {
+	for {
+		select {
+		case pingCommand := <- k.pingChan:
+			k.update(pingCommand.Sender.NodeID)
+
+		case storeCommand := <- k.storeChan:
+
+		case findNodeCommand := <- k.findNodeChan:
+
+		case findValueCommand := <- k.findValueChan:
+
+		}
+	}
+}
+
 
 // Kademlia type. You can put whatever state you need in this.
 type Kademlia struct {
-	NodeID      ID
-	SelfContact Contact
-	hash 				map[ID][]byte
-	rt					RoutingTable
+	NodeID      		ID
+	SelfContact 		Contact
+	hash 						map[ID][]byte
+	rt							[]KBucket
+	pingChan				chan pingCommand
+	storeChan				chan storeCommand
+	findNodeChan		chan findNodeCommand
+	findValueChan		chan findValueCommand
 }
 
 func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	k := new(Kademlia)
 	k.NodeID = nodeID
+
+	k.rt = make([]KBucket, IDBits)
 
 	// TODO: Initialize other state here as you add functionality.
 
@@ -65,6 +127,9 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 		}
 	}
 	k.SelfContact = Contact{k.NodeID, host, uint16(port_int)}
+
+	go k.Handler()
+
 	return k
 }
 
@@ -103,8 +168,9 @@ func (e *CommandFailed) Error() string {
 
 func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 	// TODO: Implement
-	return nil, &CommandFailed{
-		"Unable to ping " + fmt.Sprintf("%s:%v", host.String(), port)}
+	return nil, &CommandFailed {
+		"Unable to ping " + fmt.Sprintf("%s:%v", host.String(), port)
+	}
 }
 
 func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) error {

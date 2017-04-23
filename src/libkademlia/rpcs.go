@@ -36,8 +36,15 @@ func (k *KademliaRPC) Ping(ping PingMessage, pong *PongMessage) error {
 	// TODO: Finish implementation
 	pong.MsgID = CopyID(ping.MsgID)
 
-	// DoPing()
-	
+	// TODO: might have problem, race it
+	pong.Sender = k.SelfContact
+
+	// argv(Contact)
+	// ret()
+	pingCmd = pingCommand(ping.Sender)
+
+	k.pingChan <- pingCmd
+
 	// Specify the sender
 	// Update contact, etc
 	return nil
@@ -60,6 +67,10 @@ type StoreResult struct {
 
 func (k *KademliaRPC) Store(req StoreRequest, res *StoreResult) error {
 	// TODO: Implement.
+
+	// argv(Contact, key, value)
+	// ret()
+
 	return nil
 }
 
@@ -80,6 +91,10 @@ type FindNodeResult struct {
 
 func (k *KademliaRPC) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	// TODO: Implement.
+
+	// var: (Contact, NodeID)
+	// ret([] Contact)
+
 	return nil
 }
 
@@ -103,6 +118,10 @@ type FindValueResult struct {
 
 func (k *KademliaRPC) FindValue(req FindValueRequest, res *FindValueResult) error {
 	// TODO: Implement.
+
+	// parms(Contact, Key)
+	// ret([]byte, []Contact)
+
 	return nil
 }
 
