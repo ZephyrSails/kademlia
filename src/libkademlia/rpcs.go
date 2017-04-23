@@ -37,13 +37,13 @@ func (k *KademliaRPC) Ping(ping PingMessage, pong *PongMessage) error {
 	pong.MsgID = CopyID(ping.MsgID)
 
 	// TODO: might have problem, race it
-	pong.Sender = k.SelfContact
+	pong.Sender = k.kademlia.SelfContact
 
 	// argv(Contact)
 	// ret()
-	pingCmd = pingCommand(ping.Sender)
+	pingCmd := pingCommand{ping.Sender}
 
-	k.pingChan <- pingCmd
+	k.kademlia.pingChan <- pingCmd
 
 	// Specify the sender
 	// Update contact, etc

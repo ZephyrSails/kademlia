@@ -61,18 +61,17 @@ func (k *Kademlia) Handler() {
 	for {
 		select {
 		case pingCommand := <- k.pingChan:
-			k.update(pingCommand.Sender.NodeID)
+			k.update(pingCommand.Sender)
 
-		case storeCommand := <- k.storeChan:
-
-		case findNodeCommand := <- k.findNodeChan:
-
-		case findValueCommand := <- k.findValueChan:
+		// case storeCommand := <- k.storeChan:
+		//
+		// case findNodeCommand := <- k.findNodeChan:
+		//
+		// case findValueCommand := <- k.findValueChan:
 
 		}
 	}
 }
-
 
 // Kademlia type. You can put whatever state you need in this.
 type Kademlia struct {
@@ -153,8 +152,6 @@ func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
 		return &k.SelfContact, nil
 	}
 
-
-
 	return nil, &ContactNotFoundError{nodeId, "Not found"}
 }
 
@@ -169,8 +166,7 @@ func (e *CommandFailed) Error() string {
 func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 	// TODO: Implement
 	return nil, &CommandFailed {
-		"Unable to ping " + fmt.Sprintf("%s:%v", host.String(), port)
-	}
+		"Unable to ping " + fmt.Sprintf("%s:%v", host.String(), port) }
 }
 
 func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) error {
