@@ -117,10 +117,14 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	// s.Register(&KademliaRPC{k})
 	s.Register(&kRPC)
 
-	hostname, port, err := net.SplitHostPort(laddr)
-	if err != nil {
-		return nil
-	}
+	h, p, _ := StringToIpPort(laddr)
+	hostname, port := IpPortToString(h, p)
+	// hostname, port, err := net.SplitHostPort(laddr)
+	// if err != nil {
+	// 	return nil
+	// }
+	// s.HandleHTTP(rpc.DefaultRPCPath+hostname+port,
+	// 	rpc.DefaultDebugPath+hostname+port)
 	s.HandleHTTP(rpc.DefaultRPCPath+hostname+port,
 		rpc.DefaultDebugPath+hostname+port)
 	l, err := net.Listen("tcp", laddr)
@@ -184,10 +188,10 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 // func (k *Kademlia) DoPing(host string, port string) (*Contact, error) {
 	// TODO: Implement
 
-	hostStr := host.String()
-	portStr := strconv.Itoa(int(port))
+	hostStr, portStr := IpPortToString(host, port)
 
 	// hostStr = "localhost"
+	log.Printf(net.JoinHostPort(hostStr, portStr))
 	log.Printf(rpc.DefaultRPCPath+hostStr+portStr)
 
 	client, err := rpc.DialHTTPPath("tcp", net.JoinHostPort(hostStr, portStr),
