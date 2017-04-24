@@ -6,6 +6,7 @@ package libkademlia
 
 import (
 	"net"
+	"log"
 )
 
 type KademliaRPC struct {
@@ -41,9 +42,14 @@ func (k *KademliaRPC) Ping(ping PingMessage, pong *PongMessage) error {
 
 	// argv(Contact)
 	// ret()
-	pingCmd := pingCommand{ping.Sender}
+
+	pingCmd := pingCommand{ ping.Sender }
+
+	log.Println("command out")
 
 	k.kademlia.pingChan <- pingCmd
+
+	log.Println("command sent")
 
 	// Specify the sender
 	// Update contact, etc

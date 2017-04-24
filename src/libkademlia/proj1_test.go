@@ -8,6 +8,8 @@ import (
 	//"time"
 )
 
+
+
 func StringToIpPort(laddr string) (ip net.IP, port uint16, err error) {
 	hostString, portString, err := net.SplitHostPort(laddr)
 	if err != nil {
@@ -129,7 +131,7 @@ func TestFindNode(t *testing.T) {
 	if contacts == nil || len(contacts) == 0 {
 		t.Error("No contacts were found")
 	}
-	
+
 	// TODO: Check that the correct contacts were stored
 	//       (and no other contacts)
 

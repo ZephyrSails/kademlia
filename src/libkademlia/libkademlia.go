@@ -57,17 +57,19 @@ type findValueCommand struct {
 	nodeChan 	chan []Contact
 }
 
+
+
 func (k *Kademlia) Handler() {
+
+	log.Println("Handler online")
+
+	log.Println(&k.pingChan)
 	for {
 		select {
 		case pingCommand := <- k.pingChan:
-			k.update(pingCommand.Sender)
+			log.Println("command received")
 
-		// case storeCommand := <- k.storeChan:
-		//
-		// case findNodeCommand := <- k.findNodeChan:
-		//
-		// case findValueCommand := <- k.findValueChan:
+			k.update(pingCommand.Sender)
 
 		}
 	}
@@ -85,8 +87,18 @@ type Kademlia struct {
 	findValueChan		chan findValueCommand
 }
 
+// var GlobPingChan chan pingCommand
+// var GlobPingChan chan int
+
 func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	k := new(Kademlia)
+
+	k.pingChan = make(chan pingCommand)
+	k.storeChan = make(chan storeCommand)
+	k.findNodeChan = make(chan findNodeCommand)
+	k.findValueChan = make(chan findValueCommand)
+	go k.Handler()
+
 	k.NodeID = nodeID
 
 	k.rt = make([]KBucket, IDBits)
@@ -99,7 +111,12 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	// the RPC functions.
 
 	s := rpc.NewServer()
-	s.Register(&KademliaRPC{k})
+
+	kRPC := KademliaRPC{k}
+
+	// s.Register(&KademliaRPC{k})
+	s.Register(&kRPC)
+
 	hostname, port, err := net.SplitHostPort(laddr)
 	if err != nil {
 		return nil
@@ -127,7 +144,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	}
 	k.SelfContact = Contact{k.NodeID, host, uint16(port_int)}
 
-	go k.Handler()
+
 
 	return k
 }
@@ -164,9 +181,41 @@ func (e *CommandFailed) Error() string {
 }
 
 func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
+// func (k *Kademlia) DoPing(host string, port string) (*Contact, error) {
 	// TODO: Implement
-	return nil, &CommandFailed {
-		"Unable to ping " + fmt.Sprintf("%s:%v", host.String(), port) }
+
+	hostStr := host.String()
+	portStr := strconv.Itoa(int(port))
+
+	// hostStr = "localhost"
+	log.Printf(rpc.DefaultRPCPath+hostStr+portStr)
+
+	client, err := rpc.DialHTTPPath("tcp", net.JoinHostPort(hostStr, portStr),
+		rpc.DefaultRPCPath+hostStr+portStr)
+	if err != nil {
+		// log.Printf(rpc.DefaultRPCPath+hostStr+portStr)
+		log.Fatal("DialHTTP: ", err)
+	}
+
+	log.Printf("Pinging initial peer\n")
+
+	// This is a sample of what an RPC looks like
+	// TODO: Replace this with a call to your completed DoPing!
+	ping := new(PingMessage)
+	ping.MsgID = NewRandomID()
+	var pong PongMessage
+
+	err = client.Call("KademliaRPC.Ping", ping, &pong)
+
+	if err != nil {
+		log.Fatal("Call: ", err)
+		return nil, &CommandFailed {
+			"Unable to ping " + fmt.Sprintf("%s:%v", host.String(), port) }
+	}
+	log.Printf("ping msgID: %s\n", ping.MsgID.AsString())
+	log.Printf("pong msgID: %s\n\n", pong.MsgID.AsString())
+
+	return &pong.Sender, nil
 }
 
 func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) error {

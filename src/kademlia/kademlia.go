@@ -7,7 +7,7 @@ import (
 	"log"
 	"math/rand"
 	"net"
-	"net/rpc"
+	//"net/rpc"
 	"os"
 	"strconv"
 	"strings"
@@ -17,6 +17,26 @@ import (
 import (
 	"libkademlia"
 )
+
+func StringToIpPort(laddr string) (ip net.IP, port uint16, err error) {
+	hostString, portString, err := net.SplitHostPort(laddr)
+	if err != nil {
+		return
+	}
+	ipStr, err := net.LookupHost(hostString)
+	if err != nil {
+		return
+	}
+	for i := 0; i < len(ipStr); i++ {
+		ip = net.ParseIP(ipStr[i])
+		if ip.To4() != nil {
+			break
+		}
+	}
+	portInt, err := strconv.Atoi(portString)
+	port = uint16(portInt)
+	return
+}
 
 func main() {
 	// TODO: PUT YOUR GROUP'S NET IDS HERE!
@@ -47,31 +67,46 @@ func main() {
 
 	kadem := libkademlia.NewKademlia(listenStr)
 
+	// go kadem.Handler()
+
+
 	// Confirm our server is up with a PING request and then exit.
 	// Your code should loop forever, reading instructions from stdin and
 	// printing their results to stdout. See README.txt for more details.
-	hostname, port, err := net.SplitHostPort(firstPeerStr)
-	client, err := rpc.DialHTTPPath("tcp", firstPeerStr,
-		rpc.DefaultRPCPath+hostname+port)
-	if err != nil {
-		log.Fatal("DialHTTP: ", err)
-	}
 
-	log.Printf("Pinging initial peer\n")
 
-	// This is a sample of what an RPC looks like
-	// TODO: Replace this with a call to your completed DoPing!
-	ping := new(libkademlia.PingMessage)
-	ping.MsgID = libkademlia.NewRandomID()
-	var pong libkademlia.PongMessage
 
-	err = client.Call("KademliaRPC.Ping", ping, &pong)
-	
-	if err != nil {
-		log.Fatal("Call: ", err)
-	}
-	log.Printf("ping msgID: %s\n", ping.MsgID.AsString())
-	log.Printf("pong msgID: %s\n\n", pong.MsgID.AsString())
+	hostname, port, _ := StringToIpPort(firstPeerStr)
+
+	// log.Println(rpc.DefaultRPCPath+hostname+port)
+
+	kadem.DoPing(hostname, port)
+
+	// hostname, port, _ := net.SplitHostPort(firstPeerStr)
+	//
+	// client, err := rpc.DialHTTPPath("tcp", firstPeerStr,
+	// 	rpc.DefaultRPCPath+hostname+port)
+	// if err != nil {
+	// 	log.Fatal("DialHTTP: ", err)
+	// }
+	//
+	// log.Printf("Pinging initial peer\n")
+	//
+	// // This is a sample of what an RPC looks like
+	// // TODO: Replace this with a call to your completed DoPing!
+	// ping := new(libkademlia.PingMessage)
+	// ping.MsgID = libkademlia.NewRandomID()
+	// var pong libkademlia.PongMessage
+	//
+	// err = client.Call("KademliaRPC.Ping", ping, &pong)
+	//
+	// if err != nil {
+	// 	log.Fatal("Call: ", err)
+	// }
+	// log.Printf("ping msgID: %s\n", ping.MsgID.AsString())
+	// log.Printf("pong msgID: %s\n\n", pong.MsgID.AsString())
+
+
 
 	in := bufio.NewReader(os.Stdin)
 	quit := false
