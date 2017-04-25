@@ -31,7 +31,7 @@ type KBucket struct {
 // }
 
 func (k *Kademlia) update(contact Contact) {
-  log.Println("update contact called: ", contact)
+  //log.Println("update contact called: ", contact)
   bucket := k.getBucket(k.SelfContact.NodeID.Xor(contact.NodeID))
 
   for ele := bucket.contacts.Front(); ele != nil; ele = ele.Next() {
@@ -42,9 +42,9 @@ func (k *Kademlia) update(contact Contact) {
   }
 
   if (bucket.contacts.Len() < kMax) {
-    log.Println("PushBack new contact.")
+    //log.Println("PushBack new contact.")
     bucket.contacts.PushBack(contact)
-    k.printBucket(bucket)
+    //k.printBucket(bucket)
   } else {
     _, err := k.DoPing(bucket.contacts.Front().Value.(Contact).Host, uint16(bucket.contacts.Front().Value.(Contact).Port))
     if err != nil {
@@ -55,19 +55,19 @@ func (k *Kademlia) update(contact Contact) {
 }
 
 func (k *Kademlia) getContact(NodeID ID) (ret findContactResponse) {
-  log.Println("getContact called with NodeID: ", NodeID)
+  //log.Println("getContact called with NodeID: ", NodeID)
 
   bucket := k.getBucket(k.SelfContact.NodeID.Xor(NodeID))
-  k.printBucket(bucket)
+  //k.printBucket(bucket)
 
   for ele := bucket.contacts.Front(); ele != nil; ele = ele.Next() {
     if (ele.Value.(Contact).NodeID == NodeID) {
-      log.Println("NodeID: ", NodeID, " found.")
+      //log.Println("NodeID: ", NodeID, " found.")
       ret =  findContactResponse{ele.Value.(Contact), nil}
       return
     }
   }
-  log.Println("NodeID not found.")
+  //log.Println("NodeID not found.")
   //TODO: Find the better implementation
   con := Contact{}
   ret = findContactResponse{con, errors.New("Not found")}

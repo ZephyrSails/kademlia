@@ -82,7 +82,7 @@ func (k *Kademlia) Handler() {
 				findContactCommand.conChan <- k.getContact(findContactCommand.NodeID)
 
 			case pingCommand := <- k.pingChan:
-				log.Println("pingCommand received: ", pingCommand.Sender)
+				//log.Println("pingCommand received: ", pingCommand.Sender)
 				k.update(pingCommand.Sender)
 
 		}
@@ -185,7 +185,7 @@ func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
 	// TODO: Search through contacts, find specified ID
 	// Find contact with provided ID
 	if nodeId == k.SelfContact.NodeID {
-		log.Println("FindContact find itself.")
+		//log.Println("FindContact find itself.")
 		return &k.SelfContact, nil
 	}
 
@@ -200,12 +200,12 @@ func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
 
 	//TODO: Give this variable a better name
 	result := <- cmd.conChan
-	log.Println("result: ", result.result, "err: ", result.err)
+	//log.Println("result: ", result.result, "err: ", result.err)
 	if result.err == nil {
-		log.Println("ID found.")
+		//log.Println("ID found.")
 		return &result.result, nil
 	} else {
-		log.Println("Not found.")
+		//log.Println("Not found.")
 		return nil, &ContactNotFoundError{nodeId, "Not found"}
 	}
 }
@@ -221,7 +221,7 @@ func (e *CommandFailed) Error() string {
 func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 // func (k *Kademlia) DoPing(host string, port string) (*Contact, error) {
 	// TODO: Implement
-	log.Println("DoPing Called.")
+	//log.Println("DoPing Called.")
 	hostStr := host.String()
 	portStr := strconv.Itoa(int(port))
 
@@ -244,7 +244,7 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 	ping.Sender = k.SelfContact
 	var pong PongMessage
 
-	log.Println("ping.Sender in DoPing:", ping.Sender)
+	//log.Println("ping.Sender in DoPing:", ping.Sender)
 	err = client.Call("KademliaRPC.Ping", ping, &pong)
 
 	if err != nil {
@@ -254,7 +254,7 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 	}
 	//log.Printf("ping msgID: %s\n", ping.MsgID.AsString())
 	//log.Printf("pong msgID: %s\n\n", pong.MsgID.AsString())
-	log.Println("Pong rcved. Update.")
+	//log.Println("Pong rcved. Update.")
 	k.update(pong.Sender)
 	return &pong.Sender, nil
 }
