@@ -34,6 +34,17 @@ const (
 // 	privateChanFindNode
 // 	privateChanFindValue
 // }
+
+type findContactResponse struct {
+	result Contact
+	err error
+}
+
+type findContactCommand struct {
+	NodeID ID
+	conChan chan findContactResponse
+}
+
 type pingCommand struct {
 	Sender Contact
 }
@@ -61,15 +72,18 @@ type findValueCommand struct {
 
 func (k *Kademlia) Handler() {
 
-	log.Println("Handler online")
+	//log.Println("Handler online")
 
-	log.Println(&k.pingChan)
+	//log.Println(&k.pingChan)
 	for {
 		select {
-		case pingCommand := <- k.pingChan:
-			log.Println("command received")
+			case findContactCommand := <- k.findContactChan:
+				//log.Println("findContactCommand received")
+				findContactCommand.conChan <- k.getContact(findContactCommand.NodeID)
 
-			k.update(pingCommand.Sender)
+			case pingCommand := <- k.pingChan:
+				log.Println("pingCommand received: ", pingCommand.Sender)
+				k.update(pingCommand.Sender)
 
 		}
 	}
@@ -81,6 +95,7 @@ type Kademlia struct {
 	SelfContact 		Contact
 	hash 						map[ID][]byte
 	rt							[]KBucket
+	findContactChan		chan findContactCommand
 	pingChan				chan pingCommand
 	storeChan				chan storeCommand
 	findNodeChan		chan findNodeCommand
@@ -93,6 +108,7 @@ type Kademlia struct {
 func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	k := new(Kademlia)
 
+	k.findContactChan = make(chan findContactCommand)
 	k.pingChan = make(chan pingCommand)
 	k.storeChan = make(chan storeCommand)
 	k.findNodeChan = make(chan findNodeCommand)
@@ -117,12 +133,17 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	// s.Register(&KademliaRPC{k})
 	s.Register(&kRPC)
 
-	hostname, port, err := net.SplitHostPort(laddr)
+	//hostname, port, err := net.SplitHostPort(laddr)
+	hostname, port, err := StringToIpPort(laddr)
+    hostStr := hostname.String()
+	portStr := strconv.Itoa(int(port))
+
 	if err != nil {
 		return nil
 	}
-	s.HandleHTTP(rpc.DefaultRPCPath+hostname+port,
-		rpc.DefaultDebugPath+hostname+port)
+	//fmt.Println("rpc.DefaultRPCPath+hostname+port", rpc.DefaultRPCPath+hostStr+portStr)
+	s.HandleHTTP(rpc.DefaultRPCPath+hostStr+portStr,
+		rpc.DefaultDebugPath+hostStr+portStr)
 	l, err := net.Listen("tcp", laddr)
 	if err != nil {
 		log.Fatal("Listen: ", err)
@@ -132,9 +153,9 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	go http.Serve(l, nil)
 
 	// Add self contact
-	hostname, port, _ = net.SplitHostPort(l.Addr().String())
-	port_int, _ := strconv.Atoi(port)
-	ipAddrStrings, err := net.LookupHost(hostname)
+	hostStr, portStr, _ = net.SplitHostPort(l.Addr().String())
+	port_int, _ := strconv.Atoi(portStr)
+	ipAddrStrings, err := net.LookupHost(hostStr)
 	var host net.IP
 	for i := 0; i < len(ipAddrStrings); i++ {
 		host = net.ParseIP(ipAddrStrings[i])
@@ -143,8 +164,6 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 		}
 	}
 	k.SelfContact = Contact{k.NodeID, host, uint16(port_int)}
-
-
 
 	return k
 }
@@ -166,10 +185,29 @@ func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
 	// TODO: Search through contacts, find specified ID
 	// Find contact with provided ID
 	if nodeId == k.SelfContact.NodeID {
+		log.Println("FindContact find itself.")
 		return &k.SelfContact, nil
 	}
 
-	return nil, &ContactNotFoundError{nodeId, "Not found"}
+	//TODO: Give this variable a better name
+	//Note: use new will cause problem because it generate a pointer
+	//cmd := new(findContactCommand)
+	//cmd.NodeID = nodeId
+	//cmd.conChan = make(chan Contact)
+
+	cmd := findContactCommand{nodeId, make(chan findContactResponse)}
+	k.findContactChan <- cmd
+
+	//TODO: Give this variable a better name
+	result := <- cmd.conChan
+	log.Println("result: ", result.result, "err: ", result.err)
+	if result.err == nil {
+		log.Println("ID found.")
+		return &result.result, nil
+	} else {
+		log.Println("Not found.")
+		return nil, &ContactNotFoundError{nodeId, "Not found"}
+	}
 }
 
 type CommandFailed struct {
@@ -183,12 +221,12 @@ func (e *CommandFailed) Error() string {
 func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 // func (k *Kademlia) DoPing(host string, port string) (*Contact, error) {
 	// TODO: Implement
-
+	log.Println("DoPing Called.")
 	hostStr := host.String()
 	portStr := strconv.Itoa(int(port))
 
 	// hostStr = "localhost"
-	log.Printf(rpc.DefaultRPCPath+hostStr+portStr)
+	//log.Printf("DoPing: rpc.DefaultRPCPath+hostStr+portStr:", rpc.DefaultRPCPath+hostStr+portStr)
 
 	client, err := rpc.DialHTTPPath("tcp", net.JoinHostPort(hostStr, portStr),
 		rpc.DefaultRPCPath+hostStr+portStr)
@@ -197,14 +235,16 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 		log.Fatal("DialHTTP: ", err)
 	}
 
-	log.Printf("Pinging initial peer\n")
+	//log.Printf("Pinging initial peer\n")
 
 	// This is a sample of what an RPC looks like
 	// TODO: Replace this with a call to your completed DoPing!
 	ping := new(PingMessage)
 	ping.MsgID = NewRandomID()
+	ping.Sender = k.SelfContact
 	var pong PongMessage
 
+	log.Println("ping.Sender in DoPing:", ping.Sender)
 	err = client.Call("KademliaRPC.Ping", ping, &pong)
 
 	if err != nil {
@@ -212,9 +252,10 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 		return nil, &CommandFailed {
 			"Unable to ping " + fmt.Sprintf("%s:%v", host.String(), port) }
 	}
-	log.Printf("ping msgID: %s\n", ping.MsgID.AsString())
-	log.Printf("pong msgID: %s\n\n", pong.MsgID.AsString())
-
+	//log.Printf("ping msgID: %s\n", ping.MsgID.AsString())
+	//log.Printf("pong msgID: %s\n\n", pong.MsgID.AsString())
+	log.Println("Pong rcved. Update.")
+	k.update(pong.Sender)
 	return &pong.Sender, nil
 }
 

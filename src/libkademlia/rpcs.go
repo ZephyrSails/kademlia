@@ -35,6 +35,7 @@ type PongMessage struct {
 
 func (k *KademliaRPC) Ping(ping PingMessage, pong *PongMessage) error {
 	// TODO: Finish implementation
+	log.Println("Ping called.")
 	pong.MsgID = CopyID(ping.MsgID)
 
 	// TODO: might have problem, race it
@@ -43,13 +44,14 @@ func (k *KademliaRPC) Ping(ping PingMessage, pong *PongMessage) error {
 	// argv(Contact)
 	// ret()
 
+	log.Println("ping.Sender in Ping: ", ping.Sender)
 	pingCmd := pingCommand{ ping.Sender }
 
-	log.Println("command out")
+	//log.Println("command out")
 
 	k.kademlia.pingChan <- pingCmd
 
-	log.Println("command sent")
+	//log.Println("command sent")
 
 	// Specify the sender
 	// Update contact, etc
