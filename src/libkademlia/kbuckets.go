@@ -16,20 +16,6 @@ type KBucket struct {
   contacts  list.List
 }
 
-// type RoutingTable []KBucket
-// type RoutingTable struct {
-//   buckets
-// }
-
-// type command struct {
-//
-// }
-
-
-// func (k *Kademlia) updateBucket(contact Contact) {
-//
-// }
-
 func (k *Kademlia) update(contact Contact) {
   //log.Println("update contact called: ", contact)
   bucket := k.getBucket(k.SelfContact.NodeID.Xor(contact.NodeID))
@@ -70,7 +56,7 @@ func (k *Kademlia) getContact(NodeID ID) (ret findContactResponse) {
   //log.Println("NodeID not found.")
   //TODO: Find the better implementation
   con := Contact{}
-  ret = findContactResponse{con, errors.New("Not found")}
+  ret = findContactResponse{con, errors.New("Contact Not found")}
   return
 }
 

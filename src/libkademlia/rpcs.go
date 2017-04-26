@@ -41,20 +41,10 @@ func (k *KademliaRPC) Ping(ping PingMessage, pong *PongMessage) error {
 	// TODO: might have problem, race it
 	pong.Sender = k.kademlia.SelfContact
 
-	// argv(Contact)
-	// ret()
-
-	//log.Println("ping.Sender in Ping: ", ping.Sender)
-	pingCmd := pingCommand{ ping.Sender }
-
-	//log.Println("command out")
-
-	k.kademlia.pingChan <- pingCmd
+	pingCmd := updateCommand{ ping.Sender }
+	k.kademlia.updateChan <- pingCmd
 
 	//log.Println("command sent")
-
-	// Specify the sender
-	// Update contact, etc
 	return nil
 }
 
@@ -69,15 +59,21 @@ type StoreRequest struct {
 }
 
 type StoreResult struct {
-	MsgID ID
-	Err   error
+	MsgID 	ID
+	Err   	error
 }
 
 func (k *KademliaRPC) Store(req StoreRequest, res *StoreResult) error {
 	// TODO: Implement.
 
-	// argv(Contact, key, value)
-	// ret()
+	updateCmd := updateCommand{ req.Sender }
+	k.kademlia.updateChan <- updateCmd
+
+	storeCmd := storeCommand{ req.Key, req.Value, make(chan error) }
+	k.kademlia.storeChan <- storeCmd
+
+	res.MsgID = CopyID(req.MsgID)
+	res.Err = <- storeCmd.ErrChan
 
 	return nil
 }

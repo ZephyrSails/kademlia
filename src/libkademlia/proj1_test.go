@@ -68,7 +68,7 @@ func TestPing(t *testing.T) {
 	if contact2.NodeID != instance2.NodeID {
 		t.Error("Instance 2 ID incorrectly stored in Instance 1's contact list")
 	}
-	log.Println("\n -----\n", "TestPing passed!\n", "-----\n")
+	log.Println("\n -----\n", "Test Ping passed!\n", "-----\n")
 	return
 }
 
@@ -96,6 +96,7 @@ func TestStore(t *testing.T) {
 	if !bytes.Equal(storedValue, value) {
 		t.Error("Stored value did not match found value")
 	}
+	log.Println("\n -----\n", "Test Store passed!\n", "-----\n")
 	return
 }
 

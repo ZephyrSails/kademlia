@@ -18,77 +18,6 @@ const (
 	kMax  = 20
 )
 
-// STAMP_PING 				= 0
-// STAMP_STORE 			= 1
-// STAMP_FIND_NODE 	= 2
-// STAMP_FIND_VALUE	= 3
-
-
-
-// type Command struct {
-// 	stamp 								int
-// 	privateChanPing				chan PongMessage
-// 	argsPing							PingMessage
-//
-// 	privateChanStore
-// 	privateChanFindNode
-// 	privateChanFindValue
-// }
-
-type findContactResponse struct {
-	result Contact
-	err error
-}
-
-type findContactCommand struct {
-	NodeID ID
-	conChan chan findContactResponse
-}
-
-type pingCommand struct {
-	Sender Contact
-}
-
-type storeCommand struct {
-	Sender Contact
-	Key    ID
-	Value  []byte
-}
-
-type findNodeCommand struct {
-	Sender 	Contact
-	NodeID 	ID
-	resChan chan []Contact
-}
-
-type findValueCommand struct {
-	Sender 		Contact
-	Key    		ID
-	valChan		chan []byte
-	nodeChan 	chan []Contact
-}
-
-
-
-func (k *Kademlia) Handler() {
-
-	//log.Println("Handler online")
-
-	//log.Println(&k.pingChan)
-	for {
-		select {
-			case findContactCommand := <- k.findContactChan:
-				//log.Println("findContactCommand received")
-				findContactCommand.conChan <- k.getContact(findContactCommand.NodeID)
-
-			case pingCommand := <- k.pingChan:
-				//log.Println("pingCommand received: ", pingCommand.Sender)
-				k.update(pingCommand.Sender)
-
-		}
-	}
-}
-
 // Kademlia type. You can put whatever state you need in this.
 type Kademlia struct {
 	NodeID      		ID
@@ -96,24 +25,16 @@ type Kademlia struct {
 	hash 						map[ID][]byte
 	rt							[]KBucket
 	findContactChan		chan findContactCommand
-	pingChan				chan pingCommand
-	storeChan				chan storeCommand
-	findNodeChan		chan findNodeCommand
-	findValueChan		chan findValueCommand
+	updateChan				chan updateCommand
+	storeChan					chan storeCommand
+	findNodeChan			chan findNodeCommand
+	findValueChan			chan findValueCommand
 }
-
-// var GlobPingChan chan pingCommand
-// var GlobPingChan chan int
 
 func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	k := new(Kademlia)
 
-	k.findContactChan = make(chan findContactCommand)
-	k.pingChan = make(chan pingCommand)
-	k.storeChan = make(chan storeCommand)
-	k.findNodeChan = make(chan findNodeCommand)
-	k.findValueChan = make(chan findValueCommand)
-	go k.Handler()
+	k.initChans()
 
 	k.NodeID = nodeID
 
@@ -133,19 +54,6 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	// s.Register(&KademliaRPC{k})
 	s.Register(&kRPC)
 
-// <<<<<<< HEAD
-// 	//hostname, port, err := net.SplitHostPort(laddr)
-// 	hostname, port, err := StringToIpPort(laddr)
-//     hostStr := hostname.String()
-// 	portStr := strconv.Itoa(int(port))
-
-// 	if err != nil {
-// 		return nil
-// 	}
-// 	//fmt.Println("rpc.DefaultRPCPath+hostname+port", rpc.DefaultRPCPath+hostStr+portStr)
-// 	s.HandleHTTP(rpc.DefaultRPCPath+hostStr+portStr,
-// 		rpc.DefaultDebugPath+hostStr+portStr)
-// =======
 	h, p, _ := StringToIpPort(laddr)
 	hostname, port := IpPortToString(h, p)
 	// hostname, port, err := net.SplitHostPort(laddr)
@@ -208,17 +116,17 @@ func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
 	//Note: use new will cause problem because it generate a pointer
 	//cmd := new(findContactCommand)
 	//cmd.NodeID = nodeId
-	//cmd.conChan = make(chan Contact)
+	//cmd.ContactChan = make(chan Contact)
 
 	cmd := findContactCommand{nodeId, make(chan findContactResponse)}
 	k.findContactChan <- cmd
 
 	//TODO: Give this variable a better name
-	result := <- cmd.conChan
+	result := <- cmd.ContactChan
 	//log.Println("result: ", result.result, "err: ", result.err)
-	if result.err == nil {
+	if result.Err == nil {
 		//log.Println("ID found.")
-		return &result.result, nil
+		return &result.Result, nil
 	} else {
 		//log.Println("Not found.")
 		return nil, &ContactNotFoundError{nodeId, "Not found"}
