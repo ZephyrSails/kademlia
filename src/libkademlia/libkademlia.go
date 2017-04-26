@@ -167,9 +167,10 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	go http.Serve(l, nil)
 
 	// Add self contact
-	hostStr, portStr, _ = net.SplitHostPort(l.Addr().String())
-	port_int, _ := strconv.Atoi(portStr)
-	ipAddrStrings, err := net.LookupHost(hostStr)
+	hostname, port, _ = net.SplitHostPort(l.Addr().String())
+	port_int, _ := strconv.Atoi(port)
+
+	ipAddrStrings, err := net.LookupHost(hostname)
 	var host net.IP
 	for i := 0; i < len(ipAddrStrings); i++ {
 		host = net.ParseIP(ipAddrStrings[i])

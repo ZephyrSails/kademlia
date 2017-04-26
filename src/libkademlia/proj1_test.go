@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 	//"time"
-	//"log"
+	"log"
 )
 
 //
@@ -68,7 +68,7 @@ func TestPing(t *testing.T) {
 	if contact2.NodeID != instance2.NodeID {
 		t.Error("Instance 2 ID incorrectly stored in Instance 1's contact list")
 	}
-	//log.Println("\n -----\n", "TestPing passed!\n", "-----\n")
+	log.Println("\n -----\n", "TestPing passed!\n", "-----\n")
 	return
 }
 
