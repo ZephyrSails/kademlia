@@ -18,25 +18,25 @@ import (
 	"libkademlia"
 )
 
-func StringToIpPort(laddr string) (ip net.IP, port uint16, err error) {
-	hostString, portString, err := net.SplitHostPort(laddr)
-	if err != nil {
-		return
-	}
-	ipStr, err := net.LookupHost(hostString)
-	if err != nil {
-		return
-	}
-	for i := 0; i < len(ipStr); i++ {
-		ip = net.ParseIP(ipStr[i])
-		if ip.To4() != nil {
-			break
-		}
-	}
-	portInt, err := strconv.Atoi(portString)
-	port = uint16(portInt)
-	return
-}
+// func StringToIpPort(laddr string) (ip net.IP, port uint16, err error) {
+// 	hostString, portString, err := net.SplitHostPort(laddr)
+// 	if err != nil {
+// 		return
+// 	}
+// 	ipStr, err := net.LookupHost(hostString)
+// 	if err != nil {
+// 		return
+// 	}
+// 	for i := 0; i < len(ipStr); i++ {
+// 		ip = net.ParseIP(ipStr[i])
+// 		if ip.To4() != nil {
+// 			break
+// 		}
+// 	}
+// 	portInt, err := strconv.Atoi(portString)
+// 	port = uint16(portInt)
+// 	return
+// }
 
 func main() {
 	// TODO: PUT YOUR GROUP'S NET IDS HERE!
@@ -67,8 +67,6 @@ func main() {
 
 	kadem := libkademlia.NewKademlia(listenStr)
 
-	// go kadem.Handler()
-
 
 	// Confirm our server is up with a PING request and then exit.
 	// Your code should loop forever, reading instructions from stdin and
@@ -76,10 +74,16 @@ func main() {
 
 
 
-	hostname, port, _ := StringToIpPort(firstPeerStr)
 
-	// log.Println(rpc.DefaultRPCPath+hostname+port)
 
+	// hostname, port, _ := net.SplitHostPort(firstPeerStr)
+	//
+	// log.Println("AA: " + firstPeerStr)
+	// log.Println("AA: " + rpc.DefaultRPCPath+hostname+port)
+	// client, err := rpc.DialHTTPPath("tcp", firstPeerStr,
+	// 	rpc.DefaultRPCPath+hostname+port)
+
+	hostname, port, _ := libkademlia.StringToIpPort(firstPeerStr)
 	kadem.DoPing(hostname, port)
 
 	// hostname, port, _ := net.SplitHostPort(firstPeerStr)

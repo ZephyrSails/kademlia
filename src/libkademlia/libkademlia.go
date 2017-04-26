@@ -133,17 +133,31 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	// s.Register(&KademliaRPC{k})
 	s.Register(&kRPC)
 
-	//hostname, port, err := net.SplitHostPort(laddr)
-	hostname, port, err := StringToIpPort(laddr)
-    hostStr := hostname.String()
-	portStr := strconv.Itoa(int(port))
+// <<<<<<< HEAD
+// 	//hostname, port, err := net.SplitHostPort(laddr)
+// 	hostname, port, err := StringToIpPort(laddr)
+//     hostStr := hostname.String()
+// 	portStr := strconv.Itoa(int(port))
 
-	if err != nil {
-		return nil
-	}
-	//fmt.Println("rpc.DefaultRPCPath+hostname+port", rpc.DefaultRPCPath+hostStr+portStr)
-	s.HandleHTTP(rpc.DefaultRPCPath+hostStr+portStr,
-		rpc.DefaultDebugPath+hostStr+portStr)
+// 	if err != nil {
+// 		return nil
+// 	}
+// 	//fmt.Println("rpc.DefaultRPCPath+hostname+port", rpc.DefaultRPCPath+hostStr+portStr)
+// 	s.HandleHTTP(rpc.DefaultRPCPath+hostStr+portStr,
+// 		rpc.DefaultDebugPath+hostStr+portStr)
+// =======
+	h, p, _ := StringToIpPort(laddr)
+	hostname, port := IpPortToString(h, p)
+	// hostname, port, err := net.SplitHostPort(laddr)
+	// if err != nil {
+	// 	return nil
+	// }
+	// s.HandleHTTP(rpc.DefaultRPCPath+hostname+port,
+	// 	rpc.DefaultDebugPath+hostname+port)
+	s.HandleHTTP(rpc.DefaultRPCPath+hostname+port,
+		rpc.DefaultDebugPath+hostname+port)
+
+
 	l, err := net.Listen("tcp", laddr)
 	if err != nil {
 		log.Fatal("Listen: ", err)
@@ -221,12 +235,21 @@ func (e *CommandFailed) Error() string {
 func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 // func (k *Kademlia) DoPing(host string, port string) (*Contact, error) {
 	// TODO: Implement
-	//log.Println("DoPing Called.")
-	hostStr := host.String()
-	portStr := strconv.Itoa(int(port))
+// <<<<<<< HEAD
+// 	//log.Println("DoPing Called.")
+// 	hostStr := host.String()
+// 	portStr := strconv.Itoa(int(port))
+
+// 	// hostStr = "localhost"
+// 	//log.Printf("DoPing: rpc.DefaultRPCPath+hostStr+portStr:", rpc.DefaultRPCPath+hostStr+portStr)
+// =======
+
+	hostStr, portStr := IpPortToString(host, port)
 
 	// hostStr = "localhost"
-	//log.Printf("DoPing: rpc.DefaultRPCPath+hostStr+portStr:", rpc.DefaultRPCPath+hostStr+portStr)
+	log.Printf(net.JoinHostPort(hostStr, portStr))
+	log.Printf(rpc.DefaultRPCPath+hostStr+portStr)
+// >>>>>>> 9f3bdb3f413107e183dde86aef1ff6d29697c791
 
 	client, err := rpc.DialHTTPPath("tcp", net.JoinHostPort(hostStr, portStr),
 		rpc.DefaultRPCPath+hostStr+portStr)
