@@ -3,6 +3,8 @@ package libkademlia
 import (
   "net"
   "strconv"
+  "net/rpc"
+  "log"
 )
 
 
@@ -29,5 +31,16 @@ func StringToIpPort(laddr string) (ip net.IP, port uint16, err error) {
 func IpPortToString(ip net.IP, port uint16) (ipStr string, portStr string) {
   ipStr = ip.String()
   portStr = strconv.Itoa(int(port))
+  return
+}
+
+func getClient(host net.IP, port uint16) (client *rpc.Client) {
+  hostStr, portStr := IpPortToString(host, port)
+
+	client, err := rpc.DialHTTPPath("tcp", net.JoinHostPort(hostStr, portStr),
+		rpc.DefaultRPCPath+hostStr+portStr)
+	if err != nil {
+		log.Fatal("DialHTTP: ", err)
+	}
   return
 }
