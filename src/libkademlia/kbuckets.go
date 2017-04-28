@@ -60,6 +60,18 @@ func (k *Kademlia) getContact(NodeID ID) (ret findContactResponse) {
   return
 }
 
+func (k *Kademlia) getLocalValue(searchKey ID) (ret findLocalValueResponse) {
+  //log.Println("getContact called with NodeID: ", NodeID)
+  if _, ok := k.hash[searchKey]; ok {
+      
+      ret = findLocalValueResponse{k.hash[searchKey], nil}
+     } else {
+       ret = findLocalValueResponse{make([]byte, 0), errors.New("Local Value Not found")}
+     }
+  return
+}
+ 
+
 func (k *Kademlia) getBucket(dis ID) (ret *KBucket) {
   ret = &k.rt[dis.PrefixLen()]
   return

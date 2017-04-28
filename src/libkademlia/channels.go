@@ -9,6 +9,16 @@ type findContactResponse struct {
 	Err      error
 }
 
+type findLocalValueResponse struct {
+	Result   []byte
+	Err  	 error
+}
+
+type findLocalValueCommand struct {
+	SearchKey          ID
+	LocalValueChan     chan findLocalValueResponse
+}
+
 type findContactCommand struct {
 	NodeID       ID
 	ContactChan  chan findContactResponse
@@ -61,7 +71,13 @@ func (k *Kademlia) storageHandler() {
       } else {
         k.hash[storeCmd.Key] = storeCmd.Value
         storeCmd.ErrChan <- nil
+        
+
       }
+
+      case findLocalValuecmd := <- k.findLocalValueChan:
+      		findLocalValuecmd.LocalValueChan <- k.getLocalValue(findLocalValuecmd.SearchKey)
+
 		}
 	}
 }
@@ -72,6 +88,7 @@ func (k *Kademlia) initChans() {
   k.storeChan = make(chan storeCommand)
   k.findNodeChan = make(chan findNodeCommand)
   k.findValueChan = make(chan findValueCommand)
+  k.findLocalValueChan = make(chan findLocalValueCommand)
 
   go k.routingHandler()
   go k.storageHandler()

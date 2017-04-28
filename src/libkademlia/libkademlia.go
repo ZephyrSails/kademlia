@@ -25,6 +25,7 @@ type Kademlia struct {
 	hash 						map[ID][]byte
 	rt							[]KBucket
 	findContactChan		chan findContactCommand
+	findLocalValueChan	chan findLocalValueCommand
 	updateChan				chan updateCommand
 	storeChan					chan storeCommand
 	findNodeChan			chan findNodeCommand
@@ -39,6 +40,8 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	k.NodeID = nodeID
 
 	k.rt = make([]KBucket, IDBits)
+
+	k.hash = make(map[ID][]byte)
 
 	// TODO: Initialize other state here as you add functionality.
 
@@ -187,13 +190,43 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 	//log.Printf("ping msgID: %s\n", ping.MsgID.AsString())
 	//log.Printf("pong msgID: %s\n\n", pong.MsgID.AsString())
 	//log.Println("Pong rcved. Update.")
-	k.update(pong.Sender)
+	pongCmd := updateCommand{ pong.Sender }
+	k.updateChan <- pongCmd
+	// k.update(pong.Sender)
 	return &pong.Sender, nil
 }
 
 func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) error {
 	// TODO: Implement
-	return &CommandFailed{"Not implemented"}
+	hostStr, portStr := IpPortToString(contact.Host, contact.Port)
+
+	// hostStr = "localhost"
+	// log.Printf(net.JoinHostPort(hostStr, portStr))
+	// log.Printf(rpc.DefaultRPCPath+hostStr+portStr)
+// >>>>>>> 9f3bdb3f413107e183dde86aef1ff6d29697c791
+
+	client, err := rpc.DialHTTPPath("tcp", net.JoinHostPort(hostStr, portStr),
+		rpc.DefaultRPCPath+hostStr+portStr)
+	if err != nil {
+		// log.Printf(rpc.DefaultRPCPath+hostStr+portStr)
+		log.Fatal("DialHTTP: ", err)
+	}
+	req := new(StoreRequest)
+	req.Sender = k.SelfContact
+	req.MsgID = NewRandomID()
+	req.Key = key
+	req.Value = value
+	var res StoreResult
+	err = client.Call("KademliaRPC.Store", req, &res)
+	if err != nil {
+		log.Fatal("Call: ", err)
+		return &CommandFailed {
+			"Unable to store " + fmt.Sprintf("%s:%v", contact.Host.String(), contact.Port) }
+	}
+	pongCmd := updateCommand{ *contact }
+	k.updateChan <- pongCmd
+	return nil
+	// return &CommandFailed{"Not implemented"}
 }
 
 func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) ([]Contact, error) {
@@ -207,9 +240,41 @@ func (k *Kademlia) DoFindValue(contact *Contact,
 	return nil, nil, &CommandFailed{"Not implemented"}
 }
 
+// func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
+// 	if nodeId == k.SelfContact.NodeID {
+// 		return &k.SelfContact, nil
+// 	}
+// 	cmd := findContactCommand{nodeId, make(chan findContactResponse)}
+// 	k.findContactChan <- cmd
+// 	//TODO: Give this variable a better name
+// 	result := <- cmd.ContactChan
+// 	if result.Err == nil {
+// 		return &result.Result, nil
+// 	} else {
+// 		return nil, &ContactNotFoundError{nodeId, "Not found"}
+// 	}
+// }
+
+type LocalValueNotFoundError struct {
+	searchKey  ID
+	msg string
+}
+
+func (e *LocalValueNotFoundError) Error() string {
+	return fmt.Sprintf("%x %s", e.searchKey, e.msg)
+}
+
 func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
 	// TODO: Implement
-	return []byte(""), &CommandFailed{"Not implemented"}
+	cmd := findLocalValueCommand{searchKey, make(chan findLocalValueResponse)}
+	k.findLocalValueChan <- cmd
+	result := <- cmd.LocalValueChan 
+	if result.Err == nil {
+		return result.Result, nil
+	} else {
+		return nil, &LocalValueNotFoundError{searchKey, "Not found"}
+	}
+	// return []byte(""), &CommandFailed{"Not implemented"}
 }
 
 // For project 2!
