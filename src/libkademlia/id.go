@@ -26,15 +26,6 @@ func (id ID) Xor(other ID) (ret ID) {
 	return
 }
 
-// func (id1 *ID) dist(id2 ID) (ret ID) {
-//   // 20 * 8
-// 	ret =
-//   for i := 0; i < IDBytes; i++ {
-//     ret[i] = id1[i] ^ id2[i]
-//   }
-//   return
-// }
-
 // Return -1, 0, or 1, with the same meaning as strcmp, etc.
 func (id ID) Compare(other ID) int {
 	for i := 0; i < IDBytes; i++ {

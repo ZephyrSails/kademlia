@@ -4,16 +4,11 @@ import (
   "container/list"
   "log"
   "errors"
+  "sort"
 )
 
-// while node.next {
-//   do sth
-//
-//   node = node.next
-// }
-
 type KBucket struct {
-  contacts  list.List
+  contacts list.List
 }
 
 func (k *Kademlia) update(contact Contact) {
@@ -28,9 +23,7 @@ func (k *Kademlia) update(contact Contact) {
   }
 
   if (bucket.contacts.Len() < kMax) {
-    //log.Println("PushBack new contact.")
     bucket.contacts.PushBack(contact)
-    //k.printBucket(bucket)
   } else {
     _, err := k.DoPing(bucket.contacts.Front().Value.(Contact).Host, uint16(bucket.contacts.Front().Value.(Contact).Port))
     if err != nil {
@@ -48,33 +41,100 @@ func (k *Kademlia) getContact(NodeID ID) (ret findContactResponse) {
 
   for ele := bucket.contacts.Front(); ele != nil; ele = ele.Next() {
     if (ele.Value.(Contact).NodeID == NodeID) {
-      //log.Println("NodeID: ", NodeID, " found.")
       ret =  findContactResponse{ele.Value.(Contact), nil}
       return
     }
   }
-  //log.Println("NodeID not found.")
   //TODO: Find the better implementation
-  con := Contact{}
-  ret = findContactResponse{con, errors.New("Contact Not found")}
+  con := Contact {}
+  ret = findContactResponse{ con, errors.New("Contact Not found") }
+  return
+}
+
+// func (c Contact)
+
+type ContactSlice []Contact
+
+func (contacts ContactSlice) Less(i, j int) bool {
+    return contacts[i].NodeID.Less(contacts[j].NodeID)
+}
+
+func (contacts ContactSlice) Len() int {
+    return len(contacts)
+}
+
+func (contacts ContactSlice) Swap(i, j int) {
+    contacts[i], contacts[j] = contacts[j], contacts[i]
+}
+
+func toContactSlice(l list.List) (contacts ContactSlice) {
+  for ele := l.Front(); ele != nil; ele = ele.Next() {
+    contacts = append(contacts, ele.Value.(Contact))
+  }
+  return
+}
+
+func (k *Kademlia) getContactsFromBucket(bIndex, currIndex, stillNeed *int) (contacts []Contact) {
+  if (k.rt[*currIndex].contacts.Len() <= *stillNeed) {
+    // add all
+    contacts = toContactSlice(k.rt[*currIndex].contacts)
+
+    *stillNeed -= k.rt[*currIndex].contacts.Len()
+    if (*currIndex < *bIndex) {
+      *currIndex--
+    } else if (*currIndex < b-1) {
+      *currIndex++
+    } else {
+      *currIndex = *bIndex-1
+    }
+  } else { //
+    temp := toContactSlice(k.rt[*currIndex].contacts)
+    // find cloest k
+    sort.Sort(temp)
+
+    for i := 0; i < *stillNeed; i++ {
+      contacts = append(contacts, temp[i])
+    }
+    *stillNeed = 0
+  }
+  return
+}
+
+func (k *Kademlia) getKContacts(key ID) (ret FindNodeResult) {
+  // type FindNodeResult struct {
+  // 	MsgID ID
+  // 	Nodes []Contact
+  // 	Err   error
+  // }
+  bIndex := k.getBucketIndex(key)
+  stillNeed := kMax
+  currIndex := bIndex
+
+  for (stillNeed > 0 && currIndex >= 0) {
+    ret.Nodes = append(ret.Nodes, k.getContactsFromBucket(&bIndex, &currIndex, &stillNeed)...)
+  }
+
+  // ret.Nodes
+  ret.Err = nil
   return
 }
 
 func (k *Kademlia) getLocalValue(searchKey ID) (ret findLocalValueResponse) {
   //log.Println("getContact called with NodeID: ", NodeID)
   if _, ok := k.hash[searchKey]; ok {
-      
-      ret = findLocalValueResponse{k.hash[searchKey], nil}
-     } else {
-       ret = findLocalValueResponse{make([]byte, 0), errors.New("Local Value Not found")}
-     }
+    ret = findLocalValueResponse{ k.hash[searchKey], nil }
+  } else {
+    ret = findLocalValueResponse{ nil, errors.New("Local Value Not found") }
+  }
   return
 }
- 
+
+func (k *Kademlia) getBucketIndex(dis ID) (int) {
+  return dis.PrefixLen()
+}
 
 func (k *Kademlia) getBucket(dis ID) (ret *KBucket) {
-  ret = &k.rt[dis.PrefixLen()]
-  return
+  return &k.rt[k.getBucketIndex(dis)]
 }
 
 func (k *Kademlia) printBucket(bucket *KBucket) {

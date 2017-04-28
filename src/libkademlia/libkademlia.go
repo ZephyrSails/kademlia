@@ -29,7 +29,7 @@ type Kademlia struct {
 	updateChan					chan updateCommand
 	storeChan						chan storeCommand
 	findNodeChan				chan findNodeCommand
-	findValueChan				chan findValueCommand
+	// findValueChan				chan findValueCommand
 }
 
 func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
@@ -38,9 +38,6 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	k.NodeID = nodeID
 	k.rt = make([]KBucket, IDBits)
 	k.hash = make(map[ID][]byte)
-
-	// TODO: Initialize other state here as you add functionality.
-
 
 	// Set up RPC server
 	// NOTE: KademliaRPC is just a wrapper around Kademlia. This type includes
@@ -79,7 +76,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 			break
 		}
 	}
-	k.SelfContact = Contact{k.NodeID, host, uint16(port_int)}
+	k.SelfContact = Contact{ k.NodeID, host, uint16(port_int) }
 
 	return k
 }
@@ -101,27 +98,27 @@ func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
 	// TODO: Search through contacts, find specified ID
 	// Find contact with provided ID
 	if nodeId == k.SelfContact.NodeID {
-		//log.Println("FindContact find itself.")
+		// log.Println("FindContact find itself.")
 		return &k.SelfContact, nil
 	}
 
-	//TODO: Give this variable a better name
-	//Note: use new will cause problem because it generate a pointer
-	//cmd := new(findContactCommand)
-	//cmd.NodeID = nodeId
-	//cmd.ContactChan = make(chan Contact)
+	// TODO: Give this variable a better name
+	// Note: use new will cause problem because it generate a pointer
+	// cmd := new(findContactCommand)
+	// cmd.NodeID = nodeId
+	// cmd.ContactChan = make(chan Contact)
 
 	cmd := findContactCommand{nodeId, make(chan findContactResponse)}
 	k.findContactChan <- cmd
 
 	//TODO: Give this variable a better name
 	result := <- cmd.ContactChan
-	//log.Println("result: ", result.result, "err: ", result.err)
+	// log.Println("result: ", result.result, "err: ", result.err)
 	if result.Err == nil {
-		//log.Println("ID found.")
+		// log.Println("ID found.")
 		return &result.Result, nil
 	} else {
-		//log.Println("Not found.")
+		// log.Println("Not found.")
 		return nil, &ContactNotFoundError{nodeId, "Not found"}
 	}
 }
@@ -185,11 +182,10 @@ func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) ([]Contact, error)
 	updateCmd := updateCommand{ *contact }
 	k.updateChan <- updateCmd
 
-	return res.Nodes, &CommandFailed{"Not sure which error yet"}
+	return res.Nodes, res.Err
 }
 
-func (k *Kademlia) DoFindValue(contact *Contact,
-	searchKey ID) ([]byte, []Contact, error) {
+func (k *Kademlia) DoFindValue(contact *Contact, searchKey ID) ([]byte, []Contact, error) {
 
 	req := FindValueRequest{ k.SelfContact, NewRandomID(), searchKey }
 	var res FindValueResult
@@ -204,7 +200,7 @@ func (k *Kademlia) DoFindValue(contact *Contact,
 	updateCmd := updateCommand{ *contact }
 	k.updateChan <- updateCmd
 
-	return res.Value, res.Nodes, &CommandFailed{"Not sure which error yet"}
+	return res.Value, res.Nodes, res.Err
 	// return nil, nil, &CommandFailed{"Not implemented"}
 }
 
@@ -212,7 +208,7 @@ func (k *Kademlia) DoFindValue(contact *Contact,
 // 	if nodeId == k.SelfContact.NodeID {
 // 		return &k.SelfContact, nil
 // 	}
-// 	cmd := findContactCommand{nodeId, make(chan findContactResponse)}
+// 	cmd := findContactCommand{ nodeId, make(chan findContactResponse) }
 // 	k.findContactChan <- cmd
 // 	//TODO: Give this variable a better name
 // 	result := <- cmd.ContactChan
@@ -242,19 +238,21 @@ func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
 	} else {
 		return nil, &LocalValueNotFoundError{searchKey, "Not found"}
 	}
-	// return []byte(""), &CommandFailed{"Not implemented"}
 }
 
 // For project 2!
 func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 	return nil, &CommandFailed{"Not implemented"}
 }
+
 func (k *Kademlia) DoIterativeStore(key ID, value []byte) ([]Contact, error) {
 	return nil, &CommandFailed{"Not implemented"}
 }
+
 func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
 	return nil, &CommandFailed{"Not implemented"}
 }
+
 
 // For project 3!
 func (k *Kademlia) Vanish(data []byte, numberKeys byte,

@@ -35,30 +35,31 @@ type storeCommand struct {
 }
 
 type findNodeCommand struct {
-	Sender 	   Contact
 	NodeID 	   ID
-	ResChan    chan []Contact
+	ResChan    chan FindNodeResult
 }
 
-type findValueCommand struct {
-	Sender 	   Contact
-	Key    	   ID
-	ValChan	   chan []byte
-	NodeChan 	 chan []Contact
-}
+// type findValueCommand struct {
+// 	Key    	   ID
+//   ResChan    chan FindValueResult
+// }
 
 func (k *Kademlia) routingHandler() {
 	//log.Println("Handler online")
 	for {
 		select {
     case findContactCmd := <- k.findContactChan:
-				//log.Println("findContactCmd received")
-				findContactCmd.ContactChan <- k.getContact(findContactCmd.NodeID)
+			//log.Println("findContactCmd received")
+			findContactCmd.ContactChan <- k.getContact(findContactCmd.NodeID)
 
 		case updateCmd := <- k.updateChan:
 			//log.Println("updateCmd received: ", updateCmd.Sender)
 			k.update(updateCmd.Sender)
+
+    case findNodeCmd := <- k.findNodeChan:
+      findNodeCmd.ResChan <- k.getKContacts(findNodeCmd.NodeID)
 		}
+
 	}
 }
 
@@ -71,13 +72,10 @@ func (k *Kademlia) storageHandler() {
       } else {
         k.hash[storeCmd.Key] = storeCmd.Value
         storeCmd.ErrChan <- nil
-        
-
       }
 
-      case findLocalValuecmd := <- k.findLocalValueChan:
-      		findLocalValuecmd.LocalValueChan <- k.getLocalValue(findLocalValuecmd.SearchKey)
-
+    case findLocalValueCmd := <- k.findLocalValueChan:
+      findLocalValueCmd.LocalValueChan <- k.getLocalValue(findLocalValueCmd.SearchKey)
 		}
 	}
 }
@@ -87,7 +85,7 @@ func (k *Kademlia) initChans() {
   k.updateChan = make(chan updateCommand)
   k.storeChan = make(chan storeCommand)
   k.findNodeChan = make(chan findNodeCommand)
-  k.findValueChan = make(chan findValueCommand)
+  // k.findValueChan = make(chan findValueCommand)
   k.findLocalValueChan = make(chan findLocalValueCommand)
 
   go k.routingHandler()

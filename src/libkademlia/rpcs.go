@@ -96,8 +96,14 @@ type FindNodeResult struct {
 func (k *KademliaRPC) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	// TODO: Implement.
 
-	// var: (Contact, NodeID)
-	// ret([] Contact)
+	updateCmd := updateCommand{ req.Sender }
+	k.kademlia.updateChan <- updateCmd
+
+	findNodeCmd := findNodeCommand{ req.NodeID, make(chan FindNodeResult) }
+	k.kademlia.findNodeChan <- findNodeCmd
+
+	*res = <- findNodeCmd.ResChan
+	res.MsgID = CopyID(req.MsgID)
 
 	return nil
 }
@@ -125,6 +131,25 @@ func (k *KademliaRPC) FindValue(req FindValueRequest, res *FindValueResult) erro
 
 	// parms(Contact, Key)
 	// ret([]byte, []Contact)
+
+	updateCmd := updateCommand{ req.Sender }
+	k.kademlia.updateChan <- updateCmd
+
+	findValueCmd := findLocalValueCommand{ req.Key, make(chan findLocalValueResponse) }
+	k.kademlia.findLocalValueChan <- findValueCmd
+
+	FindValueRes := <- findValueCmd.LocalValueChan
+	if (FindValueRes.Err != nil) {
+		findNodeCmd := findNodeCommand{ req.Key, make(chan FindNodeResult) }
+		k.kademlia.findNodeChan <- findNodeCmd
+
+		findNodeRes := <- findNodeCmd.ResChan
+		res.Nodes = findNodeRes.Nodes
+	} else {
+		res.Value = FindValueRes.Result
+	}
+
+	res.MsgID = CopyID(req.MsgID)
 
 	return nil
 }

@@ -9,29 +9,6 @@ import (
 	"log"
 )
 
-//
-// moved to utility.go
-//
-// func StringToIpPort(laddr string) (ip net.IP, port uint16, err error) {
-// 	hostString, portString, err := net.SplitHostPort(laddr)
-// 	if err != nil {
-// 		return
-// 	}
-// 	ipStr, err := net.LookupHost(hostString)
-// 	if err != nil {
-// 		return
-// 	}
-// 	for i := 0; i < len(ipStr); i++ {
-// 		ip = net.ParseIP(ipStr[i])
-// 		if ip.To4() != nil {
-// 			break
-// 		}
-// 	}
-// 	portInt, err := strconv.Atoi(portString)
-// 	port = uint16(portInt)
-// 	return
-// }
-
 func TestPing(t *testing.T) {
 	instance1 := NewKademlia("localhost:7890")
 	instance2 := NewKademlia("localhost:7891")
@@ -104,11 +81,11 @@ func TestFindNode(t *testing.T) {
 	// tree structure;
 	// A->B->tree
 	/*
-	         C
+	       C
 	      /
 	  A-B -- D
 	      \
-	         E
+	       E
 	*/
 	instance1 := NewKademlia("localhost:7894")
 	instance2 := NewKademlia("localhost:7895")
@@ -138,7 +115,7 @@ func TestFindNode(t *testing.T) {
 
 	// TODO: Check that the correct contacts were stored
 	//       (and no other contacts)
-
+	log.Println("\n -----\n", "Test FindNode passed!\n", "-----\n")
 	return
 }
 
@@ -146,11 +123,11 @@ func TestFindValue(t *testing.T) {
 	// tree structure;
 	// A->B->tree
 	/*
-	         C
+	       C
 	      /
 	  A-B -- D
 	      \
-	         E
+	       E
 	*/
 	instance1 := NewKademlia("localhost:7926")
 	instance2 := NewKademlia("localhost:7927")
@@ -189,6 +166,8 @@ func TestFindValue(t *testing.T) {
 	if contacts == nil || len(contacts) < 10 {
 		t.Error("Searching for a wrong ID did not return contacts")
 	}
+
+	log.Println("\n -----\n", "Test TestFindValue passed!\n", "-----\n")
 
 	// TODO: Check that the correct contacts were stored
 	//       (and no other contacts)
