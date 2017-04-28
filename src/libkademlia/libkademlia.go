@@ -136,31 +136,25 @@ func (e *CommandFailed) Error() string {
 
 func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 
-	ping := new(PingMessage)
-	ping.MsgID = NewRandomID()
-	ping.Sender = k.SelfContact
-	var pong PongMessage
+	req := PingMessage{ k.SelfContact, NewRandomID()}
+	var res PongMessage
 
 	client := getClient(host, port)
-	err := client.Call("KademliaRPC.Ping", ping, &pong)
+	err := client.Call("KademliaRPC.Ping", req, &res)
 	if err != nil {
 		log.Fatal("Call: ", err)
 		return nil, &CommandFailed {
 			"Unable to ping " + fmt.Sprintf("%s:%v", host.String(), port) }
 	}
 
-	updateCmd := updateCommand{ pong.Sender }
+	updateCmd := updateCommand{ res.Sender }
 	k.updateChan <- updateCmd
-	return &pong.Sender, nil
+	return &res.Sender, err
 }
 
-func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) error {
+func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) (error) {
 
-	req := new(StoreRequest)
-	req.Sender = k.SelfContact
-	req.MsgID = NewRandomID()
-	req.Key = key
-	req.Value = value
+	req := StoreRequest{ k.SelfContact, NewRandomID(), key, value }
 	var res StoreResult
 
 	client := getClient(contact.Host, contact.Port)
@@ -173,18 +167,45 @@ func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) error {
 
 	updateCmd := updateCommand{ *contact }
 	k.updateChan <- updateCmd
-	return nil
+	return err
 }
 
 func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) ([]Contact, error) {
-	// TODO: Implement
-	return nil, &CommandFailed{"Not implemented"}
+
+	req := FindNodeRequest{ k.SelfContact, NewRandomID(), searchKey }
+	var res FindNodeResult
+
+	client := getClient(contact.Host, contact.Port)
+	err := client.Call("KademliaRPC.FindNode", req, &res)
+	if err != nil {
+		log.Fatal("Call: ", err)
+		return nil, &CommandFailed {
+			"Unable to find node " + fmt.Sprintf("%s:%v", contact.Host.String(), contact.Port) }
+	}
+	updateCmd := updateCommand{ *contact }
+	k.updateChan <- updateCmd
+
+	return res.Nodes, &CommandFailed{"Not sure which error yet"}
 }
 
 func (k *Kademlia) DoFindValue(contact *Contact,
-	searchKey ID) (value []byte, contacts []Contact, err error) {
-	// TODO: Implement
-	return nil, nil, &CommandFailed{"Not implemented"}
+	searchKey ID) ([]byte, []Contact, error) {
+
+	req := FindValueRequest{ k.SelfContact, NewRandomID(), searchKey }
+	var res FindValueResult
+
+	client := getClient(contact.Host, contact.Port)
+	err := client.Call("KademliaRPC.FindValue", req, &res)
+	if err != nil {
+		log.Fatal("Call: ", err)
+		return nil, nil, &CommandFailed {
+			"Unable to find value " + fmt.Sprintf("%s:%v", contact.Host.String(), contact.Port) }
+	}
+	updateCmd := updateCommand{ *contact }
+	k.updateChan <- updateCmd
+
+	return res.Value, res.Nodes, &CommandFailed{"Not sure which error yet"}
+	// return nil, nil, &CommandFailed{"Not implemented"}
 }
 
 // func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
