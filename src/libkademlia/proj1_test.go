@@ -7,6 +7,7 @@ import (
 	"testing"
 	//"time"
 	"log"
+	//"fmt"
 )
 
 func TestPing(t *testing.T) {
