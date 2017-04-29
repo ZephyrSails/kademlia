@@ -68,7 +68,8 @@ func (k *Kademlia) storageHandler() {
 		select {
     case storeCmd := <- k.storeChan:
       if _, ok := k.hash[storeCmd.Key]; ok {
-        storeCmd.ErrChan <- errors.New("Contact Not found")
+        // storeCmd.ErrChan <- errors.New("Hash conflict")
+        storeCmd.ErrChan <- errors.New("")
       } else {
         k.hash[storeCmd.Key] = storeCmd.Value
         storeCmd.ErrChan <- nil

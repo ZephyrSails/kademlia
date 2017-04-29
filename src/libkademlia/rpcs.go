@@ -74,6 +74,7 @@ func (k *KademliaRPC) Store(req StoreRequest, res *StoreResult) error {
 
 	res.MsgID = CopyID(req.MsgID)
 	res.Err = <- storeCmd.ErrChan
+	// log.Println("adsfasdfsadfadsfdsfasdf", res.Err)
 
 	return nil
 }

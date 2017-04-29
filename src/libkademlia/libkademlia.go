@@ -4,6 +4,7 @@ package libkademlia
 // as a receiver for the RPC methods, which is required by that package.
 
 import (
+	//"encoding/gob"
 	"fmt"
 	"log"
 	"net"
@@ -156,8 +157,11 @@ func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) (error) {
 
 	client := getClient(contact.Host, contact.Port)
 	err := client.Call("KademliaRPC.Store", req, &res)
+	// err := client.Call("KademliaRPC.Store", req, &res)
+	// log.Println("tinkertinker", res.Err)
 	if err != nil {
 		log.Fatal("Call: ", err)
+		// return nil
 		return &CommandFailed {
 			"Unable to store " + fmt.Sprintf("%s:%v", contact.Host.String(), contact.Port) }
 	}
