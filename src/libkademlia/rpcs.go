@@ -15,9 +15,10 @@ type KademliaRPC struct {
 
 // Host identification.
 type Contact struct {
-	NodeID ID
-	Host   net.IP
-	Port   uint16
+	NodeID 			ID
+	Host   			net.IP
+	Port   			uint16
+	active			bool
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -100,7 +101,7 @@ func (k *KademliaRPC) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	updateCmd := updateCommand{ req.Sender }
 	k.kademlia.updateChan <- updateCmd
 
-	findNodeCmd := findNodeCommand{ req.NodeID, make(chan FindNodeResult) }
+	findNodeCmd := findNodeCommand{ req.NodeID, make(chan FindNodeResult), kMax }
 	k.kademlia.findNodeChan <- findNodeCmd
 
 	*res = <- findNodeCmd.ResChan
@@ -141,7 +142,7 @@ func (k *KademliaRPC) FindValue(req FindValueRequest, res *FindValueResult) erro
 
 	FindValueRes := <- findValueCmd.LocalValueChan
 	if (FindValueRes.Err != nil) {
-		findNodeCmd := findNodeCommand{ req.Key, make(chan FindNodeResult) }
+		findNodeCmd := findNodeCommand{ req.Key, make(chan FindNodeResult), kMax }
 		k.kademlia.findNodeChan <- findNodeCmd
 
 		findNodeRes := <- findNodeCmd.ResChan

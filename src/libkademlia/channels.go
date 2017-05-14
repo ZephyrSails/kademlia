@@ -37,6 +37,7 @@ type storeCommand struct {
 type findNodeCommand struct {
 	NodeID 	   ID
 	ResChan    chan FindNodeResult
+  N          int
 }
 
 // type findValueCommand struct {
@@ -57,9 +58,8 @@ func (k *Kademlia) routingHandler() {
 			k.update(updateCmd.Sender)
 
     case findNodeCmd := <- k.findNodeChan:
-      findNodeCmd.ResChan <- k.getKContacts(findNodeCmd.NodeID)
+      findNodeCmd.ResChan <- k.getNContacts(findNodeCmd.NodeID, findNodeCmd.N)
 		}
-
 	}
 }
 
@@ -86,7 +86,6 @@ func (k *Kademlia) initChans() {
   k.updateChan = make(chan updateCommand)
   k.storeChan = make(chan storeCommand)
   k.findNodeChan = make(chan findNodeCommand)
-  // k.findValueChan = make(chan findValueCommand)
   k.findLocalValueChan = make(chan findLocalValueCommand)
 
   go k.routingHandler()

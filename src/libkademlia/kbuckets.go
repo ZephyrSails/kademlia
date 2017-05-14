@@ -101,20 +101,20 @@ func (k *Kademlia) getContactsFromBucket(bIndex, currIndex, stillNeed *int) (con
 }
 
 func (k *Kademlia) getKContacts(key ID) (ret FindNodeResult) {
-  // type FindNodeResult struct {
-  // 	MsgID ID
-  // 	Nodes []Contact
-  // 	Err   error
-  // }
+  ret = k.getNContacts(key, kMax)
+  return
+}
+
+func (k *Kademlia) getNContacts(key ID, N int) (ret FindNodeResult) {
+
   bIndex := k.getBucketIndex(key)
-  stillNeed := kMax
+  stillNeed := N
   currIndex := bIndex
 
   for (stillNeed > 0 && currIndex >= 0) {
     ret.Nodes = append(ret.Nodes, k.getContactsFromBucket(&bIndex, &currIndex, &stillNeed)...)
   }
 
-  // ret.Nodes
   ret.Err = nil
   return
 }

@@ -2,6 +2,13 @@
 * BUILDING *
 ************
 
+channels.go+ initChans(), handler()
+kbuckets.go+
+libkademlia+ doFindXXX()
+
+
+
+
 Go's build tools depend on the value of the GOPATH environment variable. $GOPATH
 should be the project root: the absolute path of the directory containing
 {bin,pkg,src}.
@@ -16,7 +23,7 @@ Running it as
     kademlia localhost:7890 localhost:7890
 
 will cause it to start up a server bound to localhost:7890 (the first argument)
-and then connect as a client to itself (the second argument). 
+and then connect as a client to itself (the second argument).
 
 **************************
 * COMMAND-LINE INTERFACE *
