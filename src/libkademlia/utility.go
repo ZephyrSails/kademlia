@@ -44,3 +44,31 @@ func getClient(host net.IP, port uint16) (client *rpc.Client) {
 	}
   return
 }
+
+func removeDup(l []Contact) (res []Contact) {
+  res = append(res, l[0])
+
+  for i := 1; i < len(l); i++ {
+    if !l[i].NodeID.Equals(l[i-1].NodeID) {
+      res = append(res, l[i])
+    }
+  }
+  return
+}
+
+func minus(le, ri []Contact) (res []Contact) {
+  for i := 0; i < len(le); i++ {
+    dup := false
+    for j := 0; j < len(ri); j++ {
+      if le[i].NodeID.Equals(ri[j].NodeID) {
+        dup = true
+        break
+      }
+    }
+
+    if !dup {
+      res = append(res, le[i])
+    }
+  }
+  return
+}
