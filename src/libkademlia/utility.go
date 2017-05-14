@@ -72,3 +72,15 @@ func minus(le, ri []Contact) (res []Contact) {
   }
   return
 }
+
+
+func firstKEle(l []Contact, k int) (res []Contact) {
+  if k > len(l) {
+    res = l[:]
+  } else if k < 0 {
+    res = l[:0]
+  } else {
+    res = l[:k]
+  }
+  return
+}
