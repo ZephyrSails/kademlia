@@ -37,13 +37,14 @@ type storeCommand struct {
 type findNodeCommand struct {
 	NodeID 	   ID
 	ResChan    chan FindNodeResult
-  N          int
+ 	N          int
 }
 
-// type findValueCommand struct {
-// 	Key    	   ID
-//   ResChan    chan FindValueResult
-// }
+type findValueCommand struct {
+	Key    	   ID
+ 	ResChan    chan FindValueResult
+ 	N          int
+ }
 
 func (k *Kademlia) routingHandler() {
 	//log.Println("Handler online")

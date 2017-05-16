@@ -19,6 +19,22 @@ func (k *Kademlia) ParallelDoFindNode (target *Contact, key ID, resChan chan Par
   }
 }
 
+type ParallelDoFindValueRes struct {
+  Target    *Contact
+  Value     []byte
+  Nodes     []Contact
+  Err       bool
+}
+
+func (k *Kademlia) ParallelDoFindValue (target *Contact, key ID, resChan chan ParallelDoFindValueRes) {
+  value, contacts, err := k.DoFindValue(target, key)
+  if err != nil {
+    resChan <- ParallelDoFindValueRes{ target, value, contacts, true }
+  } else {
+    resChan <- ParallelDoFindValueRes{ target, nil, contacts, false }
+  }
+}
+
 type ParallelDoPingRes struct {
   Target    *Contact
   Err       bool
@@ -149,7 +165,17 @@ func (k *Kademlia) DoIterativeStore(key ID, value []byte) (res []Contact, err er
 
 
 func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
-  findNodeCmd := findNodeCommand{ id, make(chan FindNodeResult), alpha }
+  //should be a return value but the assignment doesn't 
+  var shortlist []Contact
+  //check if the key is stored locally
+  localvalue, err := k.LocalFindValue(key)
+
+  if err != nil {
+    return localvalue, nil
+  }
+
+  //find node closest to the key
+  findNodeCmd := findNodeCommand{ key, make(chan FindNodeResult), alpha }
   k.findNodeChan <- findNodeCmd
 
   findNodeRes := <- findNodeCmd.ResChan
@@ -160,26 +186,31 @@ func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
   stop := false
   for (!stop) {
 
-    ParallelDoFindNodeResChan := make(chan ParallelDoFindNodeRes)
+    ParallelDoFindValueResChan := make(chan ParallelDoFindValueRes)
 
     for i := 0; i < len(alphaNodes); i++ {
-      go k.ParallelDoFindNode(&alphaNodes[i], id, ParallelDoFindNodeResChan)
+      go k.ParallelDoFindValue(&alphaNodes[i], key, ParallelDoFindValueResChan)
     }
 
     for i := 0; i < len(alphaNodes); i++ {
-      currDoFindNodeRes := <- ParallelDoFindNodeResChan
+      currDoFindValueRes := <- ParallelDoFindValueResChan
 
-      if !currDoFindNodeRes.Err {
-        bufferContacts = append(bufferContacts, currDoFindNodeRes.Nodes...)
+      //We don't have error return here due to the incomplete interface
+      if len(currDoFindValueRes.Value) != 0 {
+        return currDoFindValueRes.Value, nil
+      }
 
-        shortlist = append(shortlist, *currDoFindNodeRes.Target)
+      if !currDoFindValueRes.Err {
+        bufferContacts = append(bufferContacts, currDoFindValueRes.Nodes...)
+
+        shortlist = append(shortlist, *currDoFindValueRes.Target)
       }
     }
-    temp := toContactTargetSlice(shortlist, id)
+    temp := toContactTargetSlice(shortlist, key)
     sort.Sort(temp)
     shortlist = temp.Contacts
 
-    temp = toContactTargetSlice(bufferContacts, id)
+    temp = toContactTargetSlice(bufferContacts, key)
     sort.Sort(temp)
     bufferContacts = temp.Contacts
 
@@ -192,7 +223,7 @@ func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
     if len(shortlist) >= kMax {
       stop = true
 
-    } else if len(shortlist) > 0 && id.Xor(bufferContacts[0].NodeID).Less(id.Xor(shortlist[0].NodeID)) {
+    } else if len(shortlist) > 0 && key.Xor(bufferContacts[0].NodeID).Less(key.Xor(shortlist[0].NodeID)) {
 
       alphaNodes = firstKEle(bufferContacts, alpha)
 
