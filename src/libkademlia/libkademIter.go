@@ -2,6 +2,8 @@ package libkademlia
 
 import (
   "sort"
+  "fmt"
+  //"log"
 )
 
 type ParallelDoFindNodeRes struct {
@@ -28,11 +30,7 @@ type ParallelDoFindValueRes struct {
 
 func (k *Kademlia) ParallelDoFindValue (target *Contact, key ID, resChan chan ParallelDoFindValueRes) {
   value, contacts, err := k.DoFindValue(target, key)
-  if err != nil {
-    resChan <- ParallelDoFindValueRes{ target, value, contacts, true }
-  } else {
-    resChan <- ParallelDoFindValueRes{ target, nil, contacts, false }
-  }
+  resChan <- ParallelDoFindValueRes{ target, value, contacts, err != nil }
 }
 
 type ParallelDoPingRes struct {
@@ -145,17 +143,36 @@ func (k *Kademlia) DoIterativeFindNode(id ID) (shortlist []Contact, err error) {
   return
 }
 
+type DoStoreRes struct {
+  Err     bool
+  Target  *Contact
+}
+
 func (k *Kademlia) DoIterativeStore(key ID, value []byte) (res []Contact, err error) {
   contacts, err := k.DoIterativeFindNode(key)
 
   if err == nil {
+    DoStoreResChan := make(chan DoStoreRes)
+
     for i := 0; i < len(contacts); i++ {
+
+      currContact := &contacts[i]
       go func () {
-        err = k.DoStore(&contacts[i], key, value)
+        // log.Println(contacts[i].NodeID);
+        err = k.DoStore(currContact, key, value)
         if err == nil {
-          res = append(res, contacts[i])
+          DoStoreResChan <- DoStoreRes{ false, currContact }
+        } else {
+          DoStoreResChan <- DoStoreRes{ true, nil }
         }
       } ()
+    }
+
+    for i := 0; i < len(contacts); i++ {
+      doStoreRes := <- DoStoreResChan
+      if !doStoreRes.Err {
+        res = append(res, *doStoreRes.Target)
+      }
     }
     return res, nil
   }
@@ -165,12 +182,12 @@ func (k *Kademlia) DoIterativeStore(key ID, value []byte) (res []Contact, err er
 
 
 func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
-  //should be a return value but the assignment doesn't 
+  //should be a return value but the assignment doesn't
   var shortlist []Contact
   //check if the key is stored locally
   localvalue, err := k.LocalFindValue(key)
 
-  if err != nil {
+  if err == nil {
     return localvalue, nil
   }
 
@@ -196,7 +213,13 @@ func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
       currDoFindValueRes := <- ParallelDoFindValueResChan
 
       //We don't have error return here due to the incomplete interface
-      if len(currDoFindValueRes.Value) != 0 {
+
+      if currDoFindValueRes.Value != nil {
+
+        if len(shortlist) > 0 {
+          k.DoStore(&shortlist[0], key, currDoFindValueRes.Value)
+        }
+
         return currDoFindValueRes.Value, nil
       }
 
@@ -246,5 +269,6 @@ func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
   }
 
   shortlist = firstKEle(shortlist, kMax)
-  return
+  return nil, &CommandFailed {
+    "Unable to find value, closest node queried: " + fmt.Sprintf("%s", shortlist[0].NodeID.AsString()) }
 }
