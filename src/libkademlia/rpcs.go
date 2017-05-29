@@ -170,6 +170,16 @@ type GetVDOResult struct {
 }
 
 func (k *KademliaRPC) GetVDO(req GetVDORequest, res *GetVDOResult) error {
-	// TODO: Implement.
-	return nil
+	ResChan := make(chan getVDOResponse)
+	k.kademlia.getVDOChan <- getVDOCommand{req.VdoID, ResChan}
+
+	getVDOResponse := <- ResChan
+
+	res.MsgID = req.MsgID
+
+	if getVDOResponse.Err == nil {
+		res.VDO = getVDOResponse.VDO
+	}
+
+	return getVDOResponse.Err
 }

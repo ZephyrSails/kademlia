@@ -7,7 +7,8 @@ import (
 	"io"
 	mathrand "math/rand"
 	"time"
-	//"sss"
+	"sss"
+	"fmt"
 )
 
 type VanashingDataObject struct {
@@ -75,13 +76,31 @@ func decrypt(key []byte, ciphertext []byte) (text []byte) {
 func (k *Kademlia) VanishData(data []byte, numberKeys byte, threshold byte, timeoutSeconds int) (vdo VanashingDataObject) {
 	cryptographicKey := GenerateRandomCryptoKey()
 	encryptedText := encrypt(cryptographicKey, data)
-	sssKeys := Split(numberKeys, threshold, cryptographicKey)
-	accessKey := GenerateRandomAccessKey()
-	IDs := CalculateSharedKeyLocations(accessKey, numberKeys)
+	sssKeys, err_0 := sss.Split(numberKeys, threshold, cryptographicKey)
 
-	//Use previous kademlia functions to store sssKeys
-	//for
-	
+	if err_0 != nil {
+		fmt.Println("Split cryptographicKey failed")
+		return
+	}
+
+	accessKey := GenerateRandomAccessKey()
+	IDs := CalculateSharedKeyLocations(accessKey, int64(numberKeys))
+
+	fail_count := 0
+	for i := 0; i < int(numberKeys); i++ {
+		_ , err_1 := k.DoIterativeStore(IDs[i], append([]byte{byte(i)}, sssKeys[byte(i)]...))
+		if err_1 != nil {
+			fail_count += 1
+		}
+	}
+
+	fmt.Println(fail_count, "out of", int64(numberKeys), "failed")
+
+	if fail_count >= int(numberKeys) - int(threshold) {
+		fmt.Println("Less than threshold sssKeys are stored")
+		return
+	}
+
 	vdo.AccessKey = accessKey
 	vdo.Ciphertext = encryptedText
 	vdo.NumberKeys = numberKeys
@@ -90,5 +109,28 @@ func (k *Kademlia) VanishData(data []byte, numberKeys byte, threshold byte, time
 }
 
 func (k *Kademlia) UnvanishData(vdo VanashingDataObject) (data []byte) {
-	return nil
+	secret := make(map[byte][]byte)
+
+	IDs := CalculateSharedKeyLocations(vdo.AccessKey, int64(vdo.NumberKeys))
+
+	find_count := 0
+	for i := 0; i < int(vdo.NumberKeys); i++ {
+		value , err := k.DoIterativeFindValue(IDs[i])
+		if err == nil {
+			find_count += 1
+			secret[value[0]] = value[1:]
+			if find_count == int(vdo.Threshold) {
+				break
+			}
+		}
+	}
+
+	if find_count < int(vdo.Threshold) {
+		fmt.Println("Less than threshold pieces are found")
+		return nil
+	}
+
+	cryptographicKey := sss.Combine(secret)
+
+	return decrypt(cryptographicKey, vdo.Ciphertext)
 }

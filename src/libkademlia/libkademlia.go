@@ -24,13 +24,15 @@ type Kademlia struct {
 	NodeID      				ID
 	SelfContact 				Contact
 	hash 								map[ID][]byte
+	VDOHash							map[ID]VanashingDataObject
 	rt									[]KBucket
 	findContactChan			chan findContactCommand
 	findLocalValueChan	chan findLocalValueCommand
 	updateChan					chan updateCommand
 	storeChan						chan storeCommand
 	findNodeChan				chan findNodeCommand
-	// findValueChan				chan findValueCommand
+	storeVDOChan				chan storeVDOCommand
+	getVDOChan					chan getVDOCommand
 }
 
 func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
@@ -39,6 +41,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	k.NodeID = nodeID
 	k.rt = make([]KBucket, IDBits)
 	k.hash = make(map[ID][]byte)
+	k.VDOHash = make(map[ID]VanashingDataObject)
 
 	// Set up RPC server
 	// NOTE: KademliaRPC is just a wrapper around Kademlia. This type includes
@@ -233,7 +236,6 @@ func (e *LocalValueNotFoundError) Error() string {
 }
 
 func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
-	// TODO: Implement
 	cmd := findLocalValueCommand{searchKey, make(chan findLocalValueResponse)}
 	k.findLocalValueChan <- cmd
 	result := <- cmd.LocalValueChan
@@ -244,17 +246,30 @@ func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
 	}
 }
 
-
-
-
 // For project 3!
-func (k *Kademlia) Vanish(data []byte, numberKeys byte, threshold byte, timeoutSeconds int) (vdo VanashingDataObject) {
-	k.VanishData(data, numberKeys, threshold, timeoutSeconds)
-
+func (k *Kademlia) Vanish(data []byte, numberKeys byte, threshold byte, timeoutSeconds int) (vdo VanashingDataObject, VDOID ID) {
+	vdo = k.VanishData(data, numberKeys, threshold, timeoutSeconds)
+	ResChan := make(chan ID)
+	k.storeVDOChan <- storeVDOCommand{vdo, ResChan}
+	VDOID = <- ResChan
 	return
 }
 
-func (k *Kademlia) Unvanish(searchKey ID) (data []byte) {
-	//k.UnvanishData(vdo)
-	return nil
+func (k *Kademlia) Unvanish(NodeID ID, VDOID ID) (data []byte) {
+	contacts, err := k.DoIterativeFindNode(NodeID)
+
+	if err != nil {
+		return nil
+	}
+
+	req := GetVDORequest{k.SelfContact, VDOID, NewRandomID()}
+	var res GetVDOResult
+	client := getClient(contacts[0].Host, contacts[0].Port)
+	err = client.Call("KademliaRPC.GetVDO", req, &res)
+
+	if err != nil {
+		return nil
+	}
+
+	return k.UnvanishData(res.VDO)
 }
