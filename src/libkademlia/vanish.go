@@ -72,8 +72,20 @@ func decrypt(key []byte, ciphertext []byte) (text []byte) {
 	return ciphertext
 }
 
-func (k *Kademlia) VanishData(data []byte, numberKeys byte,
-	threshold byte, timeoutSeconds int) (vdo VanashingDataObject) {
+func (k *Kademlia) VanishData(data []byte, numberKeys byte, threshold byte, timeoutSeconds int) (vdo VanashingDataObject) {
+	cryptographicKey := GenerateRandomCryptoKey()
+	encryptedText := encrypt(cryptographicKey, data)
+	sssKeys := Split(numberKeys, threshold, cryptographicKey)
+	accessKey := GenerateRandomAccessKey()
+	IDs := CalculateSharedKeyLocations(accessKey, numberKeys)
+
+	//Use previous kademlia functions to store sssKeys
+	//for
+	
+	vdo.AccessKey = accessKey
+	vdo.Ciphertext = encryptedText
+	vdo.NumberKeys = numberKeys
+	vdo.Threshold = threshold
 	return
 }
 

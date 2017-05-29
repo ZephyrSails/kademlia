@@ -248,11 +248,13 @@ func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
 
 
 // For project 3!
-func (k *Kademlia) Vanish(data []byte, numberKeys byte,
-	threshold byte, timeoutSeconds int) (vdo VanashingDataObject) {
+func (k *Kademlia) Vanish(data []byte, numberKeys byte, threshold byte, timeoutSeconds int) (vdo VanashingDataObject) {
+	k.VanishData(data, numberKeys, threshold, timeoutSeconds)
+
 	return
 }
 
 func (k *Kademlia) Unvanish(searchKey ID) (data []byte) {
+	//k.UnvanishData(vdo)
 	return nil
 }
