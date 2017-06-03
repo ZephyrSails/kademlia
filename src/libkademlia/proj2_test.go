@@ -45,10 +45,12 @@ func TestIterativeStore(t *testing.T) {
 	tree_node := make([]*Kademlia, 20)
 	for i := 0; i < 10; i++ {
 		address := "localhost:" + strconv.Itoa(9206+i)
+
 		tree_node[i] = NewKademlia(address)
 		host_number, port_number, _ := StringToIpPort(address)
 		instance2.DoPing(host_number, port_number)
 	}
+
 	key := tree_node[3].NodeID
 	value := []byte("Hello World")
 
