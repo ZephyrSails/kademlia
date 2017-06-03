@@ -41,6 +41,7 @@ package sss
 import (
 	"crypto/rand"
 	"errors"
+	//"fmt"
 )
 
 var (
@@ -92,6 +93,7 @@ func Combine(shares map[byte][]byte) []byte {
 	for i := range secret {
 		p := 0
 		for k, v := range shares {
+			// fmt.Println("v:", v)
 			points[p] = pair{x: k, y: v[i]}
 			p++
 		}

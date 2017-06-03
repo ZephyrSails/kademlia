@@ -9,6 +9,7 @@ import (
 	"time"
 	"sss"
 	"fmt"
+	"log"
 )
 
 type VanashingDataObject struct {
@@ -117,8 +118,15 @@ func (k *Kademlia) UnvanishData(vdo VanashingDataObject) (data []byte) {
 	for i := 0; i < int(vdo.NumberKeys); i++ {
 		value , err := k.DoIterativeFindValue(IDs[i])
 		if err == nil {
-			find_count += 1
-			secret[value[0]] = value[1:]
+
+			if (len(value[1:]) != 0) {
+				find_count += 1
+				fmt.Println("value[1:]", value[1:])
+				secret[value[0]] = value[1:]
+			} else {
+				continue
+			}
+
 			if find_count == int(vdo.Threshold) {
 				break
 			}
@@ -130,6 +138,7 @@ func (k *Kademlia) UnvanishData(vdo VanashingDataObject) (data []byte) {
 		return nil
 	}
 
+	log.Println("length is:", len(secret))
 	cryptographicKey := sss.Combine(secret)
 
 	return decrypt(cryptographicKey, vdo.Ciphertext)
